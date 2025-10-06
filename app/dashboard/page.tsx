@@ -3,37 +3,37 @@
 import { useMemo } from "react"
 import dynamic from "next/dynamic"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useMock } from "@/lib/mock-data"
+import { useApi } from "@/lib/api-context"
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 const Charts = dynamic(() => import("./Charts"), { ssr: false })
 
 export default function DashboardPage() {
-  const { state, me } = useMock()
+  const { currentUser, users, repairPosts, guides } = useApi()
 
   const myRepairs = useMemo(() => {
-    if (!me) return []
-    return state.repairs.filter((r) => r.userId === me.id)
-  }, [state.repairs, me])
-  const success = useMemo(() => myRepairs.filter((r) => r.outcome === "success").length, [myRepairs])
-  const failure = useMemo(() => myRepairs.filter((r) => r.outcome === "failure").length, [myRepairs])
+    if (!currentUser) return []
+    return repairPosts.filter((r) => r.user_id === currentUser.id)
+  }, [repairPosts, currentUser])
+  const success = useMemo(() => myRepairs.filter((r) => r.success).length, [myRepairs])
+  const failure = useMemo(() => myRepairs.filter((r) => !r.success).length, [myRepairs])
 
   const topDevices = useMemo(() => {
     const map = new Map<string, number>()
-    for (const r of state.repairs) {
-      map.set(r.deviceName, (map.get(r.deviceName) || 0) + 1)
+    for (const r of repairPosts) {
+      map.set(r.item_name, (map.get(r.item_name) || 0) + 1)
     }
     return Array.from(map.entries())
       .map(([device, count]) => ({ device, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5)
-  }, [state.repairs])
+  }, [repairPosts])
 
   const successPie = [
     { name: "Success", value: success, fill: "oklch(var(--chart-2))" },
     { name: "Failure", value: failure, fill: "oklch(var(--chart-3))" },
   ]
 
-  if (!me) {
+  if (!currentUser) {
     return (
       <main className="mx-auto max-w-3xl p-4">
         <Card>
@@ -53,7 +53,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Total Repairs</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold">{state.repairs.length}</CardContent>
+          <CardContent className="text-2xl font-semibold">{repairPosts.length}</CardContent>
         </Card>
         <Card>
           <CardHeader>
@@ -65,13 +65,13 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Guides</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold">{state.guides.length}</CardContent>
+          <CardContent className="text-2xl font-semibold">{guides.length}</CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>Members</CardTitle>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold">{state.users.length}</CardContent>
+          <CardContent className="text-2xl font-semibold">{users.length}</CardContent>
         </Card>
       </section>
 

@@ -46,9 +46,6 @@ export function LandingHero() {
             alt="Repair workbench with tools and components"
             className="w-full rounded-xl border shadow-sm"
           />
-          <div className="pointer-events-none absolute -bottom-4 -left-4 hidden rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground shadow md:block">
-            Live community insights
-          </div>
         </div>
       </div>
     </section>

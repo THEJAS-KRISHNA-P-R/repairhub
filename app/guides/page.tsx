@@ -7,16 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { useMock } from "@/lib/mock-data"
+import { useApi } from "@/lib/api-context"
 
 export default function GuidesPage() {
-  const { state, me, addGuide } = useMock()
+  const { currentUser, guides, addGuide } = useApi()
   const [q, setQ] = useState("")
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase()
-    if (!t) return state.guides
-    return state.guides.filter((g) => (g.itemName + " " + g.content).toLowerCase().includes(t))
-  }, [q, state.guides])
+    if (!t) return guides
+    return guides.filter((g) => (g.item_name + " " + g.guide_content).toLowerCase().includes(t))
+  }, [q, guides])
 
   const [open, setOpen] = useState(false)
   const [itemName, setItemName] = useState("")
@@ -28,7 +28,7 @@ export default function GuidesPage() {
         <div className="flex-1">
           <Input placeholder="Search guides..." value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        {me && (
+        {currentUser && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>New Guide</Button>
@@ -51,7 +51,7 @@ export default function GuidesPage() {
                 <Button
                   onClick={async () => {
                     if (!itemName.trim() || !content.trim()) return
-                    await addGuide({ itemName: itemName.trim(), content: content.trim(), userId: me!.id })
+                    await addGuide({ item_name: itemName.trim(), guide_content: content.trim() })
                     setItemName("")
                     setContent("")
                     setOpen(false)
@@ -76,10 +76,10 @@ export default function GuidesPage() {
           {filtered.map((g) => (
             <Card key={g.id} className="h-full">
               <CardHeader>
-                <CardTitle className="text-base">{g.itemName}</CardTitle>
+                <CardTitle className="text-base">{g.item_name}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="line-clamp-6 whitespace-pre-wrap text-sm">{g.content}</p>
+                <p className="line-clamp-6 whitespace-pre-wrap text-sm">{g.guide_content}</p>
               </CardContent>
             </Card>
           ))}

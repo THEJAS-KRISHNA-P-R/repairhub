@@ -5,13 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useMock } from "@/lib/mock-data"
+import { useApi } from "@/lib/api-context"
 import { useRouter } from "next/navigation"
 
 export default function AuthPage() {
-  const { login, register } = useMock()
+  const { login, register } = useApi()
   const [email, setEmail] = useState("")
   const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
   return (
@@ -27,28 +29,70 @@ export default function AuthPage() {
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
             <TabsContent value="login" className="space-y-3">
-              <Input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input 
+                placeholder="Email" 
+                type="email"
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+              />
+              <Input 
+                placeholder="Password" 
+                type="password"
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+              />
               <Button
                 className="w-full"
+                disabled={isLoading}
                 onClick={async () => {
-                  await login(email, username || undefined)
-                  router.push("/feed")
+                  setIsLoading(true)
+                  try {
+                    await login(email, password)
+                    router.push("/feed")
+                  } catch (error) {
+                    // Error handled by API context
+                  } finally {
+                    setIsLoading(false)
+                  }
                 }}
               >
-                Sign in
+                {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </TabsContent>
             <TabsContent value="register" className="space-y-3">
-              <Input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <Input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+              <Input 
+                placeholder="Email" 
+                type="email"
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+              />
+              <Input 
+                placeholder="Username" 
+                value={username} 
+                onChange={(e) => setUsername(e.target.value)} 
+              />
+              <Input 
+                placeholder="Password" 
+                type="password"
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+              />
               <Button
                 className="w-full"
+                disabled={isLoading}
                 onClick={async () => {
-                  await register(email, username)
-                  router.push("/feed")
+                  setIsLoading(true)
+                  try {
+                    await register(email, username, password)
+                    router.push("/feed")
+                  } catch (error) {
+                    // Error handled by API context
+                  } finally {
+                    setIsLoading(false)
+                  }
                 }}
               >
-                Create account
+                {isLoading ? "Creating account..." : "Create account"}
               </Button>
             </TabsContent>
           </Tabs>

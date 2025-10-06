@@ -1,20 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-import { useMock } from "@/lib/mock-data"
+import { useApi } from "@/lib/api-context"
 import { BadgeDisplay } from "@/components/custom/badge-display"
 
 export default function ProfilePage() {
-  const { me, updateProfile } = useMock()
-  const [bio, setBio] = useState(me?.bio || "")
-  const [email, setEmail] = useState(me?.email || "")
+  const { currentUser, updateProfile } = useApi()
+  const [bio, setBio] = useState("")
+  const [email, setEmail] = useState("")
 
-  if (!me) {
+  useEffect(() => {
+    if (currentUser) {
+      setBio(currentUser.bio || "")
+      setEmail(currentUser.email || "")
+    }
+  }, [currentUser])
+
+  if (!currentUser) {
     return (
       <main className="mx-auto max-w-3xl p-4">
         <Card>
@@ -30,9 +37,9 @@ export default function ProfilePage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-4">
       <section className="flex items-center gap-4">
-        <img src={me.avatarUrl || "/placeholder-user.jpg"} alt="" className="h-16 w-16 rounded-full" />
+        <img src={currentUser.avatarUrl || "/placeholder-user.jpg"} alt="" className="h-16 w-16 rounded-full" />
         <div>
-          <h1 className="text-xl font-semibold">{me.username}</h1>
+          <h1 className="text-xl font-semibold">{currentUser.username}</h1>
           <p className="text-sm text-muted-foreground">{email}</p>
         </div>
       </section>
@@ -42,11 +49,7 @@ export default function ProfilePage() {
           <CardTitle>Badges</CardTitle>
         </CardHeader>
         <CardContent>
-          {me.badges.length ? (
-            <BadgeDisplay ids={me.badges} />
-          ) : (
-            <p className="text-sm text-muted-foreground">No badges yet.</p>
-          )}
+          <p className="text-sm text-muted-foreground">Badges coming soon!</p>
         </CardContent>
       </Card>
 

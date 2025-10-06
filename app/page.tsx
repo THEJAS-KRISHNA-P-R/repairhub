@@ -3,7 +3,7 @@ import { LandingHero } from "@/components/custom/landing-hero"
 import { LandingSections } from "@/components/custom/landing-sections"
 
 export const metadata: Metadata = {
-  title: "Digital Repair Hub — Fix it. Together.",
+  title: "Digital Repair Café — Fix it. Together.",
   description: "Join the DIY repair community. Discover guides, share repairs, and learn faster with real results.",
 }
 
