@@ -2,25 +2,29 @@
 
 import { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { useApi } from "@/lib/api-context"
+import type { Guide } from "@/lib/api"
 
 export default function GuidesPage() {
   const { currentUser, guides, addGuide } = useApi()
   const [q, setQ] = useState("")
+  const guidesList = guides ?? []
+
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase()
-    if (!t) return guides
-    return guides.filter((g) => (g.item_name + " " + g.guide_content).toLowerCase().includes(t))
-  }, [q, guides])
+    if (!t) return guidesList
+    return guidesList.filter((g: Guide) => (g.item_name + " " + g.guide_content).toLowerCase().includes(t))
+  }, [q, guidesList])
 
   const [open, setOpen] = useState(false)
   const [itemName, setItemName] = useState("")
   const [content, setContent] = useState("")
+  const [selectedGuide, setSelectedGuide] = useState<Guide | null>(null)
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 p-4">
@@ -64,6 +68,7 @@ export default function GuidesPage() {
           </Dialog>
         )}
       </div>
+
       {filtered.length === 0 ? (
         <Card>
           <CardHeader>
@@ -74,14 +79,33 @@ export default function GuidesPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {filtered.map((g) => (
-            <Card key={g.id} className="h-full">
-              <CardHeader>
-                <CardTitle className="text-base">{g.item_name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="line-clamp-6 whitespace-pre-wrap text-sm">{g.guide_content}</p>
-              </CardContent>
-            </Card>
+            <Dialog
+              key={g.id}
+              open={selectedGuide?.id === g.id}
+              onOpenChange={(isOpen) => {
+                if (!isOpen) setSelectedGuide(null)
+              }}
+            >
+              <DialogTrigger asChild>
+                <Card className="h-full cursor-pointer" onClick={() => setSelectedGuide(g)}>
+                  <CardHeader>
+                    <CardTitle className="text-base">{g.item_name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="line-clamp-6 whitespace-pre-wrap text-sm">{g.guide_content}</p>
+                  </CardContent>
+                </Card>
+              </DialogTrigger>
+
+              <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{g.item_name}</DialogTitle>
+                </DialogHeader>
+                <CardContent>
+                  <p className="whitespace-pre-wrap text-sm">{g.guide_content}</p>
+                </CardContent>
+              </DialogContent>
+            </Dialog>
           ))}
         </div>
       )}

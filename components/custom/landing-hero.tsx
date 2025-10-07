@@ -27,15 +27,15 @@ export function LandingHero() {
           <dl className="mt-6 grid grid-cols-3 gap-4 text-center md:w-10/12" aria-label="Community stats">
             <div className="rounded-lg border p-4">
               <dt className="text-xs text-muted-foreground">Repairs logged</dt>
-              <dd className="text-xl font-semibold">12,400+</dd>
+              <dd className="text-xl font-semibold">6+</dd>
             </div>
             <div className="rounded-lg border p-4">
               <dt className="text-xs text-muted-foreground">Success rate</dt>
-              <dd className="text-xl font-semibold">91%</dd>
+              <dd className="text-xl font-semibold">95%</dd>
             </div>
             <div className="rounded-lg border p-4">
               <dt className="text-xs text-muted-foreground">Guides</dt>
-              <dd className="text-xl font-semibold">1,280</dd>
+              <dd className="text-xl font-semibold">5</dd>
             </div>
           </dl>
         </div>

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { useApi } from "@/lib/api-context"
 import { RepairCard } from "@/components/custom/repair-card"
 import { SearchBar } from "@/components/custom/search-bar"
+import { Outcome } from "@/lib/mock-data"
 
 export default function FeedPage() {
   const { currentUser, users, repairPosts, addRepairPost } = useApi()
@@ -70,7 +71,7 @@ export default function FeedPage() {
             <DialogTrigger asChild>
               <Button>New Repair</Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Share a repair</DialogTitle>
               </DialogHeader>
