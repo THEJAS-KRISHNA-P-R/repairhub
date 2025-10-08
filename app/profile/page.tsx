@@ -8,11 +8,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { useApi } from "@/lib/api-context"
 import { BadgeDisplay } from "@/components/custom/badge-display"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function ProfilePage() {
   const { currentUser, updateProfile } = useApi()
+  const { toast } = useToast()
   const [bio, setBio] = useState("")
   const [email, setEmail] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (currentUser) {
@@ -66,7 +69,25 @@ export default function ProfilePage() {
             <Label>Bio</Label>
             <Textarea rows={4} value={bio} onChange={(e) => setBio(e.target.value)} />
           </div>
-          <Button onClick={() => updateProfile({ email, bio })}>Save changes</Button>
+          <Button 
+            disabled={isLoading} 
+            onClick={async () => {
+              try {
+                setIsLoading(true)
+                await updateProfile({ email, bio })
+              } catch (error: any) {
+                toast({
+                  title: "Failed to update profile",
+                  description: error.response?.data?.error || "Please try again later",
+                  variant: "destructive"
+                })
+              } finally {
+                setIsLoading(false)
+              }
+            }}
+          >
+            {isLoading ? "Saving..." : "Save changes"}
+          </Button>
         </CardContent>
       </Card>
     </main>

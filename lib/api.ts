@@ -117,7 +117,7 @@ export const usersAPI = {
   },
 
   updateProfile: async (data: Partial<User>): Promise<User> => {
-    const response = await api.put('/api/users/me', data)
+    const response = await api.put('/api/users/profile', data)
     return response.data
   },
 }
