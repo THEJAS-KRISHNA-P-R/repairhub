@@ -1,69 +1,46 @@
-import axios from 'axios'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+import { createClient } from '@/utils/supabase/client'
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-// Request interceptor to add auth token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-// Response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token')
-      window.location.href = '/auth'
-    }
-    return Promise.reject(error)
-  }
-)
+// Initialize Supabase client
+const supabase = createClient()
 
 export interface User {
-  id: number
+  id: string
   username: string
   email: string
   bio?: string
-  avatarUrl?: string
+  avatar_url?: string
 }
 
 export interface RepairPost {
-  id: number
+  id: string
   item_name: string
   issue_description?: string
   repair_steps?: string
   success: boolean
   date: string
-  images?: string
-  user_id: number
+  images?: string[] | null
+  user_id: string
+  profiles?: User
 }
 
 export interface Comment {
-  id: number
-  user_id: number
-  repair_post_id: number
+  id: string
+  user_id: string
+  repair_post_id: string
   content: string
-  parent_id?: number
+  parent_id?: string | null
   date: string
+  profiles?: User
 }
 
 export interface Guide {
-  id: number
-  user_id: number
+  id: string
+  user_id: string
   item_name: string
   guide_content: string
   date: string
+  profiles?: User
 }
 
 export interface LoginRequest {
@@ -78,124 +55,300 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  token: string
   user: User
+  session: any
 }
 
 // Auth API
 export const authAPI = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
-    const response = await api.post('/api/auth/login', data)
-    return response.data
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    })
+
+    if (error) throw error
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single()
+
+    return {
+      user: profile as User,
+      session: authData.session,
+    }
   },
 
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    const response = await api.post('/api/auth/register', data)
-    return response.data
+    const { data: authData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          username: data.username,
+          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}`,
+        },
+      },
+    })
+
+    if (error) throw error
+
+    return {
+      user: {
+        id: authData.user!.id,
+        email: authData.user!.email!,
+        username: data.username,
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}`,
+      },
+      session: authData.session
+    }
   },
 
   logout: async (): Promise<void> => {
-    await api.post('/api/auth/logout')
+    await supabase.auth.signOut()
   },
 
-  getCurrentUser: async (): Promise<User> => {
-    const response = await api.get('/api/auth/me')
-    return response.data
+  getCurrentUser: async (): Promise<User | null> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    return profile as User
   },
 }
 
 // Users API
 export const usersAPI = {
   getAll: async (): Promise<User[]> => {
-    const response = await api.get('/api/users')
-    return response.data
+    const { data, error } = await supabase.from('profiles').select('*')
+    if (error) throw error
+    return data as User[]
   },
 
-  getById: async (id: number): Promise<User> => {
-    const response = await api.get(`/api/users/${id}`)
-    return response.data
+  getById: async (id: string): Promise<User> => {
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single()
+    if (error) throw error
+    return data as User
   },
 
   updateProfile: async (data: Partial<User>): Promise<User> => {
-    const response = await api.put('/api/users/profile', data)
-    return response.data
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .update(data)
+      .eq('id', user.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return profile as User
   },
 }
 
 // Repair Posts API
 export const repairPostsAPI = {
-  getAll: async (): Promise<RepairPost[]> => {
-    const response = await api.get('/api/repair-posts')
-    return response.data
+  getAll: async (searchQuery?: string): Promise<RepairPost[]> => {
+    let query = supabase
+      .from('repair_posts')
+      .select(`
+        *,
+        profiles (*)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (searchQuery) {
+      query = query.or(`item_name.ilike.%${searchQuery}%,issue_description.ilike.%${searchQuery}%`)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return data as unknown as RepairPost[]
   },
 
-  getById: async (id: number): Promise<RepairPost> => {
-    const response = await api.get(`/api/repair-posts/${id}`)
-    return response.data
+  getById: async (id: string): Promise<RepairPost> => {
+    const { data, error } = await supabase
+      .from('repair_posts')
+      .select(`
+        *,
+        profiles (*)
+      `)
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+    return data as unknown as RepairPost
   },
 
-  create: async (data: Omit<RepairPost, 'id' | 'date' | 'user_id'>): Promise<RepairPost> => {
-    const response = await api.post('/api/repair-posts', data)
-    return response.data
+  create: async (data: Omit<RepairPost, 'id' | 'date' | 'user_id' | 'profiles'>): Promise<RepairPost> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: post, error } = await supabase
+      .from('repair_posts')
+      .insert({
+        ...data,
+        user_id: user.id
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return post as RepairPost
   },
 
-  update: async (id: number, data: Partial<RepairPost>): Promise<RepairPost> => {
-    const response = await api.put(`/api/repair-posts/${id}`, data)
-    return response.data
+  update: async (id: string, data: Partial<RepairPost>): Promise<RepairPost> => {
+    const { data: post, error } = await supabase
+      .from('repair_posts')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return post as RepairPost
   },
 
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`/api/repair-posts/${id}`)
+  delete: async (id: string): Promise<void> => {
+    const { error } = await supabase.from('repair_posts').delete().eq('id', id)
+    if (error) throw error
   },
 }
 
 // Comments API
 export const commentsAPI = {
-  getByRepairPost: async (repairPostId: number): Promise<Comment[]> => {
-    const response = await api.get(`/api/repair-posts/${repairPostId}/comments`)
-    return response.data
+  getByRepairPost: async (repairPostId: string): Promise<Comment[]> => {
+    const { data, error } = await supabase
+      .from('comments')
+      .select(`
+        *,
+        profiles (*)
+      `)
+      .eq('repair_post_id', repairPostId)
+      .order('date', { ascending: true })
+
+    if (error) throw error
+    return data as unknown as Comment[]
   },
 
-  create: async (repairPostId: number, data: { content: string; parent_id?: number }): Promise<Comment> => {
-    const response = await api.post(`/api/repair-posts/${repairPostId}/comments`, data)
-    return response.data
+  create: async (repairPostId: string, data: { content: string; parent_id?: string }): Promise<Comment> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: comment, error } = await supabase
+      .from('comments')
+      .insert({
+        content: data.content,
+        parent_id: data.parent_id,
+        repair_post_id: repairPostId,
+        user_id: user.id
+      })
+      .select(`
+        *,
+        profiles (*)
+      `)
+      .single()
+
+    if (error) throw error
+    return comment as unknown as Comment
   },
 
-  update: async (repairPostId: number, commentId: number, data: { content: string }): Promise<Comment> => {
-    const response = await api.put(`/api/repair-posts/${repairPostId}/comments/${commentId}`, data)
-    return response.data
+  update: async (repairPostId: string, commentId: string, data: { content: string }): Promise<Comment> => {
+    const { data: comment, error } = await supabase
+      .from('comments')
+      .update({ content: data.content })
+      .eq('id', commentId)
+      .select(`
+            *,
+            profiles (*)
+        `)
+      .single()
+
+    if (error) throw error
+    return comment as unknown as Comment
   },
 
-  delete: async (repairPostId: number, commentId: number): Promise<void> => {
-    await api.delete(`/api/repair-posts/${repairPostId}/comments/${commentId}`)
-  },
+  delete: async (commentId: string): Promise<void> => {
+    const { error } = await supabase.from('comments').delete().eq('id', commentId)
+    if (error) throw error
+  }
 }
 
 // Guides API
 export const guidesAPI = {
-  getAll: async (): Promise<Guide[]> => {
-    const response = await api.get('/api/guides')
-    return response.data
+  getAll: async (searchQuery?: string): Promise<Guide[]> => {
+    let query = supabase
+      .from('guides')
+      .select(`
+        *,
+        profiles (*)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (searchQuery) {
+      query = query.or(`item_name.ilike.%${searchQuery}%,guide_content.ilike.%${searchQuery}%`)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return data as unknown as Guide[]
   },
 
-  getById: async (id: number): Promise<Guide> => {
-    const response = await api.get(`/api/guides/${id}`)
-    return response.data
+  getById: async (id: string): Promise<Guide> => {
+    const { data, error } = await supabase
+      .from('guides')
+      .select(`
+        *,
+        profiles (*)
+      `)
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+    return data as unknown as Guide
   },
 
-  create: async (data: Omit<Guide, 'id' | 'date' | 'user_id'>): Promise<Guide> => {
-    const response = await api.post('/api/guides', data)
-    return response.data
+  create: async (data: Omit<Guide, 'id' | 'date' | 'user_id' | 'profiles'>): Promise<Guide> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: guide, error } = await supabase
+      .from('guides')
+      .insert({
+        ...data,
+        user_id: user.id
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return guide as Guide
   },
 
-  update: async (id: number, data: Partial<Guide>): Promise<Guide> => {
-    const response = await api.put(`/api/guides/${id}`, data)
-    return response.data
+  update: async (id: string, data: Partial<Guide>): Promise<Guide> => {
+    const { data: guide, error } = await supabase
+      .from('guides')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return guide as Guide
   },
 
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`/api/guides/${id}`)
+  delete: async (id: string): Promise<void> => {
+    const { error } = await supabase.from('guides').delete().eq('id', id)
+    if (error) throw error
   },
 }
 
-export default api
+export default supabase

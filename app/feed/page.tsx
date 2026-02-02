@@ -12,6 +12,8 @@ import { useApi } from "@/lib/api-context"
 import { RepairCard } from "@/components/custom/repair-card"
 import { SearchBar } from "@/components/custom/search-bar"
 import { Outcome } from "@/lib/mock-data"
+import { Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 export default function FeedPage() {
   const { currentUser, users, repairPosts, addRepairPost } = useApi()
@@ -43,6 +45,7 @@ export default function FeedPage() {
   const [repairSteps, setRepairSteps] = useState("")
   const [outcome, setOutcome] = useState<"success" | "failure">("success")
   const [images, setImages] = useState<string[]>([])
+  const [isUploading, setIsUploading] = useState(false)
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-4">
@@ -100,25 +103,71 @@ export default function FeedPage() {
                   </select>
                 </div>
                 <div className="grid gap-2">
-                  <Label>Images (coming soon)</Label>
+                  <Label>Images</Label>
                   <Input
                     type="file"
                     accept="image/*"
                     multiple
-                    disabled
+                    disabled={isUploading}
+                    onChange={async (e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setIsUploading(true)
+                        try {
+                          const files = Array.from(e.target.files)
+                          const uploadedUrls: string[] = []
+                          const supabase = await import('@/utils/supabase/client').then(mod => mod.createClient())
+
+                          for (const file of files) {
+                            const fileExt = file.name.split('.').pop()
+                            const fileName = `${Math.random()}.${fileExt}`
+                            const filePath = `${currentUser.id}/${fileName}`
+
+                            const { error: uploadError } = await supabase.storage
+                              .from('repair-images')
+                              .upload(filePath, file)
+
+                            if (uploadError) {
+                              console.error(uploadError)
+                              toast.error(`Failed to upload ${file.name}`)
+                              continue
+                            }
+
+                            const { data } = supabase.storage.from('repair-images').getPublicUrl(filePath)
+                            uploadedUrls.push(data.publicUrl)
+                          }
+                          setImages(prev => [...prev, ...uploadedUrls])
+                        } catch (error) {
+                          toast.error("Upload failed")
+                        } finally {
+                          setIsUploading(false)
+                        }
+                      }
+                    }}
                   />
-                  <p className="text-sm text-muted-foreground">Image upload will be available soon</p>
+                  {isUploading && <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</div>}
+                  {images.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {images.map((url, i) => (
+                        <img key={i} src={url} alt="Uploaded" className="h-16 w-16 object-cover rounded border" />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <DialogFooter>
                 <Button
+                  disabled={isUploading}
                   onClick={async () => {
-                    if (!deviceName.trim() || !issueDesc.trim() || !repairSteps.trim()) return
+                    if (!deviceName.trim() || !issueDesc.trim() || !repairSteps.trim()) {
+                      toast.error("Please fill in all fields")
+                      return
+                    }
                     await addRepairPost({
                       item_name: deviceName.trim(),
                       issue_description: issueDesc.trim(),
                       repair_steps: repairSteps.trim(),
                       success: outcome === "success",
+                      images: images.length > 0 ? images : null
                     })
                     setDeviceName("")
                     setIssueDesc("")
