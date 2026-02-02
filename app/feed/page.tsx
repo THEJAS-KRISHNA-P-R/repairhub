@@ -12,16 +12,16 @@ import { useApi } from "@/lib/api-context"
 import { RepairCard } from "@/components/custom/repair-card"
 import { SearchBar } from "@/components/custom/search-bar"
 import { Outcome } from "@/lib/mock-data"
-import { Loader2 } from "lucide-react"
+import { Loader2, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 export default function FeedPage() {
   const { currentUser, users, repairPosts, addRepairPost } = useApi()
 
   const [q, setQ] = useState("")
-  const [deviceFilter, setDeviceFilter] = useState("")
-  const [userFilter, setUserFilter] = useState("")
-  const [outcomeFilter, setOutcomeFilter] = useState("")
+  const [deviceFilter, setDeviceFilter] = useState("all")
+  const [userFilter, setUserFilter] = useState("all")
+  const [outcomeFilter, setOutcomeFilter] = useState("all")
   const [open, setOpen] = useState(false)
 
   const allDevices = useMemo(() => repairPosts.map((r) => r.item_name), [repairPosts])
@@ -30,9 +30,9 @@ export default function FeedPage() {
   const filtered = useMemo(() => {
     const text = q.trim().toLowerCase()
     return repairPosts.filter((r) => {
-      if (deviceFilter && r.item_name !== deviceFilter) return false
-      if (userFilter && r.user_id.toString() !== userFilter) return false
-      if (outcomeFilter && r.success.toString() !== outcomeFilter) return false
+      if (deviceFilter !== "all" && r.item_name !== deviceFilter) return false
+      // if (userFilter !== "all" && r.user_id.toString() !== userFilter) return false
+      if (outcomeFilter !== "all" && (outcomeFilter === "success") !== r.success) return false
       if (!text) return true
       const hay = `${r.item_name} ${r.issue_description || ''} ${r.repair_steps || ''}`.toLowerCase()
       return hay.includes(text)
@@ -48,48 +48,37 @@ export default function FeedPage() {
   const [isUploading, setIsUploading] = useState(false)
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 p-4">
-      <section className="space-y-2">
-        <h1 className="text-pretty text-2xl font-semibold">Community Repairs</h1>
-        <p className="text-muted-foreground">Search, filter, and share your repair wins and lessons.</p>
-      </section>
+    <main className="mx-auto max-w-6xl p-4 md:p-6 space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Community Repairs</h1>
+          <p className="text-muted-foreground text-sm">Discover {repairPosts.length} repairs from the community.</p>
+        </div>
 
-      <SearchBar
-        allDevices={allDevices}
-        allUsers={allUsers}
-        value={q}
-        onChange={setQ}
-        deviceFilter={deviceFilter}
-        onDeviceFilter={setDeviceFilter}
-        userFilter={userFilter}
-        onUserFilter={setUserFilter}
-        outcomeFilter={outcomeFilter}
-        onOutcomeFilter={setOutcomeFilter}
-      />
-
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{filtered.length} results</span>
         {currentUser && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>New Repair</Button>
+              <Button size="sm" className="hidden md:flex">
+                <Plus className="mr-2 h-4 w-4" /> New Repair
+              </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Share a repair</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-3 py-2">
+              <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label>Device name</Label>
-                  <Input value={deviceName} onChange={(e) => setDeviceName(e.target.value)} />
+                  <Input placeholder="e.g. iPhone 12 Mini" value={deviceName} onChange={(e) => setDeviceName(e.target.value)} />
                 </div>
                 <div className="grid gap-2">
                   <Label>Issue description</Label>
-                  <Textarea value={issueDesc} onChange={(e) => setIssueDesc(e.target.value)} />
+                  <Textarea placeholder="What was broken?" value={issueDesc} onChange={(e) => setIssueDesc(e.target.value)} />
                 </div>
                 <div className="grid gap-2">
                   <Label>Repair steps</Label>
-                  <Textarea value={repairSteps} onChange={(e) => setRepairSteps(e.target.value)} />
+                  <Textarea placeholder="How did you fix it?" className="min-h-[100px]" value={repairSteps} onChange={(e) => setRepairSteps(e.target.value)} />
                 </div>
                 <div className="grid gap-2">
                   <Label>Outcome</Label>
@@ -146,7 +135,7 @@ export default function FeedPage() {
                   />
                   {isUploading && <div className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</div>}
                   {images.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 flex-wrap mt-2">
                       {images.map((url, i) => (
                         <img key={i} src={url} alt="Uploaded" className="h-16 w-16 object-cover rounded border" />
                       ))}
@@ -177,7 +166,7 @@ export default function FeedPage() {
                     setOpen(false)
                   }}
                 >
-                  Post
+                  Post Repair
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -185,24 +174,42 @@ export default function FeedPage() {
         )}
       </div>
 
-      <Separator />
+      <SearchBar
+        allDevices={allDevices}
+        allUsers={allUsers}
+        value={q}
+        onChange={setQ}
+        deviceFilter={deviceFilter}
+        onDeviceFilter={setDeviceFilter}
+        userFilter={userFilter}
+        onUserFilter={setUserFilter}
+        outcomeFilter={outcomeFilter}
+        onOutcomeFilter={setOutcomeFilter}
+      />
 
-      {filtered.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No results</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Try clearing filters or adjusting your search query.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((r) => (
-            <RepairCard key={r.id} id={r.id.toString()} />
-          ))}
+      {/* Mobile New Repair Button (Floating or visible in layout) */}
+      {currentUser && (
+        <div className="md:hidden">
+          <Button className="w-full" onClick={() => setOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> New Repair
+          </Button>
         </div>
       )}
+
+      <div className="space-y-4">
+        {filtered.length === 0 ? (
+          <div className="text-center py-12 border rounded-lg bg-muted/10">
+            <h3 className="font-semibold text-lg">No repairs found</h3>
+            <p className="text-muted-foreground text-sm mt-1">Try adjusting your filters.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((r) => (
+              <RepairCard key={r.id} id={r.id.toString()} />
+            ))}
+          </div>
+        )}
+      </div>
     </main>
   )
 }

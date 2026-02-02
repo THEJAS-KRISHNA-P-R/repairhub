@@ -1,10 +1,9 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
+import { Search } from "lucide-react"
 
 type Props = {
   allDevices: string[]
@@ -32,7 +31,13 @@ export function SearchBar({
   onOutcomeFilter,
 }: Props) {
   const [internal, setInternal] = useState(value)
-  useEffect(() => setInternal(value), [value])
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+    setInternal(value)
+  }, [value])
 
   // debounce update
   useEffect(() => {
@@ -42,26 +47,25 @@ export function SearchBar({
     return () => clearTimeout(t)
   }, [internal]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const deviceSuggestions = useMemo(() => {
-    const q = internal.trim().toLowerCase()
-    if (!q) return []
-    return Array.from(new Set(allDevices.filter((d) => d.toLowerCase().includes(q)))).slice(0, 5)
-  }, [internal, allDevices])
+  if (!mounted) return <div className="h-10 w-full bg-muted/20 animate-pulse rounded-md" />
 
   return (
-    <div className="grid gap-3">
-      <div className="grid gap-3 md:grid-cols-4">
-        <div className="md:col-span-2">
-          <Input
-            placeholder="Search repairs by device, issue, or steps…"
-            value={internal}
-            onChange={(e) => setInternal(e.target.value)}
-            aria-label="Search repairs"
-          />
-        </div>
+    <div className="flex flex-col gap-2 md:flex-row md:items-center">
+      <div className="relative flex-1">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search repairs..."
+          value={internal}
+          onChange={(e) => setInternal(e.target.value)}
+          className="pl-9"
+          aria-label="Search repairs"
+        />
+      </div>
+
+      <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
         <Select value={deviceFilter} onValueChange={onDeviceFilter}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Filter by device" />
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Device" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All devices</SelectItem>
@@ -74,44 +78,18 @@ export function SearchBar({
               ))}
           </SelectContent>
         </Select>
-        <Select value={userFilter} onValueChange={onUserFilter}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Filter by user" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All users</SelectItem>
-            {allUsers.map((u) => (
-              <SelectItem key={u.id} value={u.id}>
-                {u.username}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
         <Select value={outcomeFilter} onValueChange={onOutcomeFilter}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-[110px]">
             <SelectValue placeholder="Outcome" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All outcomes</SelectItem>
+            <SelectItem value="all">Any</SelectItem>
             <SelectItem value="success">Success</SelectItem>
             <SelectItem value="failure">Failure</SelectItem>
           </SelectContent>
         </Select>
       </div>
-
-      <Command className={cn("rounded-md border")}>
-        <CommandInput placeholder="Suggestions…" />
-        <CommandList>
-          <CommandEmpty>No suggestions.</CommandEmpty>
-          <CommandGroup heading="Devices">
-            {deviceSuggestions.map((d) => (
-              <CommandItem key={d} value={d} onSelect={(val) => onChange(val)}>
-                {d}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </Command>
     </div>
   )
 }

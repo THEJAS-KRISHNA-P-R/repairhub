@@ -1,7 +1,10 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { useApi } from "@/lib/api-context"
 
 export function LandingHero() {
+  const { currentUser } = useApi()
+
   return (
     <section aria-labelledby="hero-title" className="bg-card">
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-16 md:grid-cols-2 md:py-24">
@@ -17,11 +20,19 @@ export function LandingHero() {
             <Link href="/feed" aria-label="Explore the repair feed">
               <Button className="min-w-36">Explore repairs</Button>
             </Link>
-            <Link href="/auth" aria-label="Create your account">
-              <Button variant="outline" className="min-w-36 bg-transparent">
-                Create account
-              </Button>
-            </Link>
+            {!currentUser ? (
+              <Link href="/auth" aria-label="Create your account">
+                <Button variant="outline" className="min-w-36 bg-transparent">
+                  Create account
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/dashboard" aria-label="Go to Dashboard">
+                <Button variant="outline" className="min-w-36 bg-transparent">
+                  Dashboard
+                </Button>
+              </Link>
+            )}
           </div>
 
           <dl className="mt-6 grid grid-cols-3 gap-4 text-center md:w-10/12" aria-label="Community stats">
