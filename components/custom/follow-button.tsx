@@ -9,10 +9,11 @@ import { toast } from "sonner"
 
 interface FollowButtonProps {
     userId: string
-    size?: "sm" | "default"
+    size?: "sm" | "default" | "icon"
+    className?: string
 }
 
-export function FollowButton({ userId, size = "default" }: FollowButtonProps) {
+export function FollowButton({ userId, size = "default", className }: FollowButtonProps) {
     const { currentUser } = useApi()
     const [isFollowing, setIsFollowing] = useState(false)
     const [loading, setLoading] = useState(true)
@@ -52,7 +53,7 @@ export function FollowButton({ userId, size = "default" }: FollowButtonProps) {
 
     if (loading) {
         return (
-            <Button size={size} variant="outline" disabled>
+            <Button size={size} variant="outline" disabled className={className}>
                 <Loader2 className="h-4 w-4 animate-spin" />
             </Button>
         )
@@ -64,6 +65,7 @@ export function FollowButton({ userId, size = "default" }: FollowButtonProps) {
             variant={isFollowing ? "outline" : "default"}
             onClick={handleToggle}
             disabled={toggling}
+            className={className}
         >
             {toggling ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-1" />

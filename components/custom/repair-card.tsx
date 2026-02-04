@@ -84,7 +84,7 @@ export function RepairCard({ id, repair: repairProp }: RepairCardProps) {
               </span>
             </div>
             <div onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
-              <FollowButton userId={repair.user_id} />
+              <FollowButton userId={repair.user_id} size="sm" className="h-7 text-xs px-2" />
             </div>
           </div>
         </CardHeader>
