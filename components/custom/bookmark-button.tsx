@@ -59,7 +59,6 @@ export function BookmarkButton({
             <Bookmark
                 className={cn(
                     "h-4 w-4",
-                    size === "sm" && "h-3.5 w-3.5",
                     bookmarked && "fill-current"
                 )}
             />
