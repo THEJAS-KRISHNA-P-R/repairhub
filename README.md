@@ -1,120 +1,186 @@
-Digital Repair Hub
-===================
+# 🔧 RepairHub
 
-Monorepo with a Next.js frontend and a Spring Boot (Java) backend connected to MySQL.
+A community-driven platform for sharing DIY repair guides, documenting repair attempts, and connecting with fellow repair enthusiasts.
 
-Project Structure
------------------
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?logo=supabase)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss)
 
-- `app/` – Next.js 15 app router frontend (React, TypeScript, Tailwind)
-- `backend/` – Spring Boot 3 application (Java 17, JPA/Hibernate, Flyway, MySQL)
-- `components/`, `hooks/`, `lib/` – Frontend UI and utilities
-- `public/` – Static assets
+## ✨ Features
 
-Prerequisites
--------------
+- **🔐 Authentication** – Secure email/password authentication with Supabase Auth and Google OAuth support
+- **📝 Repair Posts** – Document your repair attempts with item details, issue descriptions, repair steps, and success status
+- **📚 Guides** – Create and browse comprehensive repair guides for various items
+- **💬 Comments** – Engage in discussions with threaded comments on repair posts
+- **🏅 Badges** – Earn recognition with a badge system for active contributors
+- **👤 User Profiles** – Personalized profiles with avatars and bios
+- **🖼️ Image Uploads** – Attach images to repair posts via Supabase Storage
+- **🌙 Dark Mode** – Built-in theme support with next-themes
+- **📱 Responsive Design** – Works seamlessly on desktop and mobile
+- **🏷️ Categories** – Organize repairs by device type (Electronics, Appliances, etc.)
+- **👍 Upvoting** – Vote for helpful repairs to surface the best content
+- **🔖 Bookmarks** – Save repairs to revisit later
+- **🛡️ Admin Dashboard** – Moderate content, manage users, and configure categories
 
-- Node.js 18+ and npm
-- Java 17 (JDK) and Maven 3.9+
-- MySQL 8+ running locally
+## 🏗️ Tech Stack
 
-Environment Variables
----------------------
+### Frontend
+- **Framework:** [Next.js 16](https://nextjs.org/) with App Router
+- **UI Library:** [React 19](https://react.dev/)
+- **Language:** TypeScript 5
+- **Styling:** [Tailwind CSS 4](https://tailwindcss.com/)
+- **UI Components:** [Radix UI](https://www.radix-ui.com/) primitives with shadcn/ui
+- **Forms:** React Hook Form + Zod validation
+- **Data Fetching:** SWR for client-side caching
+- **Icons:** Lucide React
 
-Frontend (`.env.local` in repo root):
+### Backend
+- **Platform:** [Supabase](https://supabase.com/)
+  - PostgreSQL database
+  - Authentication (Email/Password + OAuth)
+  - Row Level Security (RLS)
+  - Realtime subscriptions
+  - Storage for images
 
-```
-NEXT_PUBLIC_API_URL=http://localhost:8080
-```
-
-Backend (`backend/src/main/resources/application.properties` already configured):
-
-- Defaults to `jdbc:mysql://localhost:3306/repair_hub_db`
-- To override via environment variables (optional):
-  - `DB_URL`
-  - `DB_USERNAME`
-  - `DB_PASSWORD`
-
-Database & Migrations
----------------------
-
-- Flyway runs automatically on backend start against `classpath:db/migration` (e.g., `V1__init.sql`).
-- The schema will be created/updated if missing. Seed `data.sql` has been removed; the app uses live data only.
-
-Install & Run
--------------
-
-1) Backend (Spring Boot)
-
-```
-cd backend
-mvn spring-boot:run
-```
-
-The backend starts on `http://localhost:8080`.
-
-2) Frontend (Next.js)
+## 📁 Project Structure
 
 ```
+repairhub-main/
+├── app/                    # Next.js App Router pages
+│   ├── admin/             # Admin dashboard (protected)
+│   ├── auth/              # Login/Register pages
+│   ├── dashboard/         # User dashboard & bookmarks
+│   ├── feed/              # Community repair posts feed
+│   ├── guides/            # Repair guides
+│   ├── profile/           # User profile
+│   ├── repairs/           # Repair post details
+│   └── layout.tsx         # Root layout
+├── components/
+│   ├── custom/            # App-specific components
+│   │   ├── navbar.tsx     # Navigation bar
+│   │   ├── repair-card.tsx
+│   │   ├── vote-button.tsx
+│   │   ├── bookmark-button.tsx
+│   │   └── category-badge.tsx
+│   └── ui/                # Radix/shadcn UI primitives
+├── hooks/                 # Custom React hooks
+├── lib/
+│   ├── api.ts             # Supabase API functions
+│   ├── api-context.tsx    # API context provider
+│   └── utils.ts           # Utility functions
+├── utils/
+│   └── supabase/          # Supabase client utilities
+├── supabase/
+│   ├── schema.sql         # Initial database schema
+│   └── migration_v2.sql   # Categories, votes, bookmarks, admin
+├── public/                # Static assets
+└── styles/                # Global styles
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js 18+** and npm
+- A [Supabase](https://supabase.com/) project
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/THEJAS-KRISHNA-P-R/repairhub.git
+cd repairhub
+```
+
+### 2. Install Dependencies
+
+```bash
 npm install --legacy-peer-deps
+```
+
+### 3. Set Up Supabase
+
+1. Create a new project at [supabase.com](https://supabase.com/)
+2. Run `supabase/schema.sql` in the SQL Editor to create initial tables
+3. Run `supabase/migration_v2.sql` for categories, votes, bookmarks, and admin features
+4. Enable Email/Password authentication in Authentication > Providers
+5. (Optional) Configure Google OAuth for social login
+
+### 4. Configure Environment Variables
+
+Create a `.env.local` file in the project root:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Optional (for Google OAuth):
+```env
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+```
+
+### 5. Run the Development Server
+
+```bash
 npm run dev
 ```
 
-The frontend starts on `http://localhost:3000`.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Key API Endpoints (for Postman)
--------------------------------
+## 📊 Database Schema
 
-Auth
+The app uses the following main tables:
 
-- `POST /api/auth/register` – `{ email, username, password }`
-- `POST /api/auth/login` – `{ email, password }` → `{ token, user }`
-- `GET /api/auth/me` – requires `Authorization: Bearer <token>`
+| Table | Description |
+|-------|-------------|
+| `profiles` | User profiles (linked to Supabase Auth) |
+| `repair_posts` | Repair attempt documentation |
+| `guides` | Comprehensive repair guides |
+| `comments` | Threaded comments on posts |
+| `badges` | Available achievement badges |
+| `user_badges` | Badges earned by users |
 
-Users
+All tables have Row Level Security (RLS) enabled for data protection.
 
-- `GET /api/users`
+## 🛠️ Scripts
 
-Repair Posts
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
 
-- `GET /api/repair-posts`
-- `GET /api/repair-posts/{id}`
-- `POST /api/repair-posts` – `{ item_name, issue_description, repair_steps, success, user_id }`
-- `PUT /api/repair-posts/{id}` – partial updates allowed
-- `DELETE /api/repair-posts/{id}`
+## 🔒 Authentication
 
-Comments
+RepairHub uses Supabase Auth with:
+- Email/password authentication
+- Google OAuth (optional)
+- Automatic profile creation on signup via database trigger
+- Session management via middleware
 
-- `GET /api/repair-posts/{repairPostId}/comments`
-- `POST /api/repair-posts/{repairPostId}/comments` – `{ content, user_id, parent_id? }`
-- `PUT /api/repair-posts/{repairPostId}/comments/{commentId}` – `{ content }`
-- `DELETE /api/repair-posts/{repairPostId}/comments/{commentId}`
+## 📸 Storage
 
-Guides
+Images are stored in Supabase Storage with:
+- Public `repair-images` bucket
+- Authenticated upload policy
+- Public read access
 
-- `GET /api/guides`
-- `GET /api/guides/{id}`
-- `POST /api/guides` – `{ item_name, guide_content, user_id }`
-- `PUT /api/guides/{id}` – partial updates allowed
-- `DELETE /api/guides/{id}`
+## 🤝 Contributing
 
-Frontend Integration Notes
---------------------------
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- The frontend uses Axios with a base URL from `NEXT_PUBLIC_API_URL` and an auth token stored in `localStorage`.
-- Mock data has been removed in favor of the live API; pages use `useApi()` from `lib/api-context.tsx`.
+## 📝 License
 
-Troubleshooting
----------------
+MIT License - see [LICENSE](LICENSE) for details.
 
-- Port 8080 in use: stop other apps or change `server.port` in `application.properties`.
-- MySQL connection issues: verify credentials and that MySQL is running; update `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` env vars if needed.
-- CORS errors: `backend/src/main/java/com/repairhub/config/WebConfig.java` enables permissive CORS for local dev.
-- Hydration mismatch: the navbar defers user state until client mount to ensure consistent SSR/CSR HTML.
+---
 
-License
--------
-
-MIT
-
-
+Built with ❤️ for the repair community

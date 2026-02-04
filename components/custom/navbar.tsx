@@ -7,10 +7,11 @@ import { useApi } from "@/lib/api-context"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
-import { Menu } from "lucide-react"
+import { Menu, Shield, Bookmark } from "lucide-react"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
+import { adminAPI } from "@/lib/api"
 
-const links = [
+const baseLinks = [
   { href: "/feed", label: "Feed" },
   { href: "/guides", label: "Guides" },
   { href: "/dashboard", label: "Dashboard" },
@@ -22,11 +23,26 @@ export function Navbar() {
   const { currentUser, logout, isInitialized } = useApi()
   const [mounted, setMounted] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // Prevent hydration mismatch by only showing user state after mount
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Check admin status
+  useEffect(() => {
+    if (currentUser) {
+      adminAPI.isAdmin().then(setIsAdmin).catch(() => setIsAdmin(false))
+    } else {
+      setIsAdmin(false)
+    }
+  }, [currentUser])
+
+  // Build links dynamically based on admin status
+  const links = isAdmin
+    ? [...baseLinks, { href: "/admin", label: "Admin" }]
+    : baseLinks
 
   // Calculate display name with fallback
   const displayName = currentUser?.username || currentUser?.email?.split('@')[0] || "User"
@@ -68,9 +84,11 @@ export function Navbar() {
                 className={cn(
                   "flex items-center text-sm font-medium text-muted-foreground",
                   pathname.startsWith(l.href) && "text-foreground",
-                  "transition-colors hover:text-foreground/80"
+                  "transition-colors hover:text-foreground/80",
+                  l.href === "/admin" && "text-orange-600 dark:text-orange-400"
                 )}
               >
+                {l.href === "/admin" && <Shield className="h-3.5 w-3.5 mr-1" />}
                 {l.label}
               </Link>
             ))}
@@ -79,6 +97,15 @@ export function Navbar() {
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-2">
+          {/* Bookmarks link for logged in users */}
+          {currentUser && (
+            <Link href="/dashboard/bookmarks" className="hidden md:block">
+              <Button variant="ghost" size="icon" title="My Bookmarks">
+                <Bookmark className="h-4 w-4" />
+              </Button>
+            </Link>
+          )}
+
           {/* Desktop Auth */}
           <div className="hidden md:flex items-center gap-2">
             {currentUser ? (
@@ -122,13 +149,28 @@ export function Navbar() {
                         href={item.href}
                         onClick={() => setIsOpen(false)}
                         className={cn(
-                          "text-base font-medium transition-colors hover:text-primary py-1",
-                          pathname.startsWith(item.href) && "text-primary"
+                          "text-base font-medium transition-colors hover:text-primary py-1 flex items-center gap-2",
+                          pathname.startsWith(item.href) && "text-primary",
+                          item.href === "/admin" && "text-orange-600 dark:text-orange-400"
                         )}
                       >
+                        {item.href === "/admin" && <Shield className="h-4 w-4" />}
                         {item.label}
                       </Link>
                     ))}
+                    {currentUser && (
+                      <Link
+                        href="/dashboard/bookmarks"
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          "text-base font-medium transition-colors hover:text-primary py-1 flex items-center gap-2",
+                          pathname === "/dashboard/bookmarks" && "text-primary"
+                        )}
+                      >
+                        <Bookmark className="h-4 w-4" />
+                        My Bookmarks
+                      </Link>
+                    )}
                   </div>
                   <div className="border-t pt-6 mt-4">
                     {currentUser ? (

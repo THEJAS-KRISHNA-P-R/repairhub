@@ -1,11 +1,43 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useApi } from "@/lib/api-context"
+import { repairPostsAPI, guidesAPI } from "@/lib/api"
 
 export function LandingHero() {
   const { currentUser } = useApi()
+  const [stats, setStats] = useState({ repairs: 0, successRate: 0, guides: 0 })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [repairs, guides] = await Promise.all([
+          repairPostsAPI.getAll(),
+          guidesAPI.getAll(),
+        ])
+
+        const successCount = repairs.filter(r => r.success).length
+        const successRate = repairs.length > 0
+          ? Math.round((successCount / repairs.length) * 100)
+          : 0
+
+        setStats({
+          repairs: repairs.length,
+          successRate,
+          guides: guides.length,
+        })
+      } catch (error) {
+        console.error("Failed to load stats:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadStats()
+  }, [])
 
   return (
     <section aria-labelledby="hero-title" className="bg-card">
@@ -40,15 +72,33 @@ export function LandingHero() {
           <dl className="mt-6 grid grid-cols-3 gap-4 text-center md:w-10/12" aria-label="Community stats">
             <div className="rounded-lg border p-4">
               <dt className="text-xs text-muted-foreground">Repairs logged</dt>
-              <dd className="text-xl font-semibold">6+</dd>
+              <dd className="text-xl font-semibold">
+                {loading ? (
+                  <span className="inline-block h-6 w-8 animate-pulse bg-muted rounded"></span>
+                ) : (
+                  stats.repairs > 0 ? `${stats.repairs}+` : "0"
+                )}
+              </dd>
             </div>
             <div className="rounded-lg border p-4">
               <dt className="text-xs text-muted-foreground">Success rate</dt>
-              <dd className="text-xl font-semibold">95%</dd>
+              <dd className="text-xl font-semibold">
+                {loading ? (
+                  <span className="inline-block h-6 w-8 animate-pulse bg-muted rounded"></span>
+                ) : (
+                  `${stats.successRate}%`
+                )}
+              </dd>
             </div>
             <div className="rounded-lg border p-4">
               <dt className="text-xs text-muted-foreground">Guides</dt>
-              <dd className="text-xl font-semibold">5</dd>
+              <dd className="text-xl font-semibold">
+                {loading ? (
+                  <span className="inline-block h-6 w-8 animate-pulse bg-muted rounded"></span>
+                ) : (
+                  stats.guides
+                )}
+              </dd>
             </div>
           </dl>
         </div>

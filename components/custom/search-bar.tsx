@@ -4,14 +4,18 @@ import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search } from "lucide-react"
+import { Category } from "@/lib/api"
 
 type Props = {
   allDevices: string[]
   allUsers: { id: string; username: string }[]
+  categories: Category[]
   value: string
   onChange: (v: string) => void
   deviceFilter: string
   onDeviceFilter: (v: string) => void
+  categoryFilter: string
+  onCategoryFilter: (v: string) => void
   userFilter: string
   onUserFilter: (v: string) => void
   outcomeFilter: string
@@ -21,10 +25,13 @@ type Props = {
 export function SearchBar({
   allDevices,
   allUsers,
+  categories,
   value,
   onChange,
   deviceFilter,
   onDeviceFilter,
+  categoryFilter,
+  onCategoryFilter,
   userFilter,
   onUserFilter,
   outcomeFilter,
@@ -63,6 +70,21 @@ export function SearchBar({
       </div>
 
       <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+        <Select value={categoryFilter} onValueChange={onCategoryFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>
+                {cat.icon && <span className="mr-1">{cat.icon}</span>}
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={deviceFilter} onValueChange={onDeviceFilter}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Device" />

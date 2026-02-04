@@ -1,18 +1,41 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
+import { repairPostsAPI, type RepairPost } from "@/lib/api"
+import { Loader2 } from "lucide-react"
 
 export function LandingSections() {
+  const [recentRepairs, setRecentRepairs] = useState<RepairPost[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadRepairs = async () => {
+      try {
+        const repairs = await repairPostsAPI.getAll()
+        // Get 3 most recent repairs
+        setRecentRepairs(repairs.slice(0, 3))
+      } catch (error) {
+        console.error("Failed to load repairs:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadRepairs()
+  }, [])
+
   return (
     <>
       {/* Social proof bar */}
       <section aria-label="Trusted by makers" className="border-y bg-muted/50">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-10 text-sm text-muted-foreground md:grid-cols-4">
-          <p>Backed by thousands of posts</p>
-          <p>Real-world outcomes</p>
+          <p>Real-world solutions</p>
+          <p>Community-verified</p>
           <p>No fluff—just results</p>
           <p>Friendly moderation</p>
         </div>
@@ -64,61 +87,99 @@ export function LandingSections() {
         </div>
       </section>
 
-      {/* Preview strip */}
+      {/* Preview strip - Real repairs from database */}
       <section aria-labelledby="preview-title" className="bg-card">
         <div className="mx-auto max-w-6xl px-4 py-14">
           <h2 id="preview-title" className="text-pretty text-2xl font-semibold md:text-3xl">
             See what people are fixing
           </h2>
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-            {["iPhone 12 speaker", "ThinkPad trackpad", "PS5 fan swap"].map((t, i) => (
-              <div key={i} className="rounded-lg border p-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{t}</p>
-                  <span className="rounded bg-accent px-2 py-1 text-xs text-accent-foreground">success</span>
+            {loading ? (
+              // Loading skeleton
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-lg border p-4 animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <div className="h-5 w-32 bg-muted rounded"></div>
+                    <div className="h-6 w-16 bg-muted rounded"></div>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <div className="h-4 w-full bg-muted rounded"></div>
+                    <div className="h-4 w-3/4 bg-muted rounded"></div>
+                  </div>
                 </div>
-                <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                  Community steps, parts, and pitfalls—summarized for quick wins.
-                </p>
-                <img
-                  src={`/.jpg?height=140&width=480&query=${encodeURIComponent(t + " repair preview")}`}
-                  alt={`${t} repair preview`}
-                  className="mt-3 w-full rounded-md border"
-                />
+              ))
+            ) : recentRepairs.length === 0 ? (
+              <div className="col-span-3 text-center py-8 text-muted-foreground">
+                <p>No repairs yet. Be the first to share!</p>
+                <Link href="/feed">
+                  <Button className="mt-4">Post a Repair</Button>
+                </Link>
               </div>
-            ))}
+            ) : (
+              recentRepairs.map((repair) => (
+                <Link
+                  key={repair.id}
+                  href={`/repairs/${repair.id}`}
+                  className="block rounded-lg border p-4 hover:shadow-md transition"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium truncate">{repair.item_name}</p>
+                    <Badge variant={repair.success ? "default" : "secondary"}>
+                      {repair.success ? "Success" : "Failure"}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                    {repair.issue_description || "No description provided"}
+                  </p>
+                  {repair.category && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {repair.category.icon} {repair.category.name}
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    by {repair.profiles?.username || "Unknown"} · {new Date(repair.date).toLocaleDateString()}
+                  </p>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section aria-labelledby="testimonials-title">
+      {/* How it works section - replaces fake testimonials */}
+      <section aria-labelledby="how-it-works-title">
         <div className="mx-auto max-w-6xl px-4 py-14">
-          <h2 id="testimonials-title" className="text-pretty text-2xl font-semibold md:text-3xl">
-            Loved by DIYers and fixers
+          <h2 id="how-it-works-title" className="text-pretty text-2xl font-semibold md:text-3xl">
+            How it works
           </h2>
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-            {[
-              {
-                quote: "Found the exact steps for my laptop battery—saved time and money.",
-                name: "Samir, hobbyist",
-              },
-              {
-                quote: "The comments clarified a tricky connector—my repair worked on the first try.",
-                name: "Priya, student",
-              },
-              {
-                quote: "Guides are clean and searchable. Publishing my own was a breeze.",
-                name: "Leo, technician",
-              },
-            ].map((t, i) => (
-              <Card key={i}>
-                <CardContent className="pt-6">
-                  <p className="text-balance text-sm">{t.quote}</p>
-                  <p className="mt-3 text-xs text-muted-foreground">{t.name}</p>
-                </CardContent>
-              </Card>
-            ))}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-3xl mb-3">🔍</div>
+                <h3 className="font-semibold">1. Find your device</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Search repairs by device name, issue, or browse categories to find similar problems.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-3xl mb-3">🛠️</div>
+                <h3 className="font-semibold">2. Learn from others</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Read step-by-step repair instructions shared by real people who fixed the same issue.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-3xl mb-3">✨</div>
+                <h3 className="font-semibold">3. Share your win</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Fixed something? Share your repair to help the next person and earn community recognition.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -148,7 +209,7 @@ export function LandingSections() {
 
           <div className="mt-8">
             <Link href="/auth">
-              <Button className="min-w-40">Get started — it’s free</Button>
+              <Button className="min-w-40">Get started — it's free</Button>
             </Link>
           </div>
         </div>

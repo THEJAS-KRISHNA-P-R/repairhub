@@ -1,28 +1,35 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useApi } from "@/lib/api-context"
 import { RepairCard } from "@/components/custom/repair-card"
 import { SearchBar } from "@/components/custom/search-bar"
 import { Outcome } from "@/lib/mock-data"
 import { Loader2, Plus } from "lucide-react"
 import { toast } from "sonner"
+import { categoriesAPI, Category } from "@/lib/api"
 
 export default function FeedPage() {
   const { currentUser, users, repairPosts, addRepairPost } = useApi()
 
   const [q, setQ] = useState("")
   const [deviceFilter, setDeviceFilter] = useState("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
   const [userFilter, setUserFilter] = useState("all")
   const [outcomeFilter, setOutcomeFilter] = useState("all")
   const [open, setOpen] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+
+  // Load categories
+  useEffect(() => {
+    categoriesAPI.getAll().then(setCategories).catch(console.error)
+  }, [])
 
   const allDevices = useMemo(() => repairPosts.map((r) => r.item_name), [repairPosts])
   const allUsers = useMemo(() => users.map((u) => ({ id: u.id.toString(), username: u.username })), [users])
@@ -31,21 +38,44 @@ export default function FeedPage() {
     const text = q.trim().toLowerCase()
     return repairPosts.filter((r) => {
       if (deviceFilter !== "all" && r.item_name !== deviceFilter) return false
-      // if (userFilter !== "all" && r.user_id.toString() !== userFilter) return false
+      if (categoryFilter !== "all" && r.category_id !== categoryFilter) return false
       if (outcomeFilter !== "all" && (outcomeFilter === "success") !== r.success) return false
       if (!text) return true
       const hay = `${r.item_name} ${r.issue_description || ''} ${r.repair_steps || ''}`.toLowerCase()
       return hay.includes(text)
     })
-  }, [q, deviceFilter, userFilter, outcomeFilter, repairPosts])
+  }, [q, deviceFilter, categoryFilter, userFilter, outcomeFilter, repairPosts])
 
   // new post form
   const [deviceName, setDeviceName] = useState("")
   const [issueDesc, setIssueDesc] = useState("")
   const [repairSteps, setRepairSteps] = useState("")
   const [outcome, setOutcome] = useState<"success" | "failure">("success")
+  const [selectedCategory, setSelectedCategory] = useState("")
   const [images, setImages] = useState<string[]>([])
   const [isUploading, setIsUploading] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!deviceName.trim() || !issueDesc.trim() || !repairSteps.trim()) {
+      toast.error("Please fill in all fields")
+      return
+    }
+    await addRepairPost({
+      item_name: deviceName.trim(),
+      issue_description: issueDesc.trim(),
+      repair_steps: repairSteps.trim(),
+      success: outcome === "success",
+      category_id: selectedCategory || undefined,
+      images: images.length > 0 ? images : null
+    })
+    setDeviceName("")
+    setIssueDesc("")
+    setRepairSteps("")
+    setOutcome("success")
+    setSelectedCategory("")
+    setImages([])
+    setOpen(false)
+  }
 
   return (
     <main className="mx-auto max-w-6xl p-4 md:p-6 space-y-6">
@@ -71,6 +101,22 @@ export default function FeedPage() {
                 <div className="grid gap-2">
                   <Label>Device name</Label>
                   <Input placeholder="e.g. iPhone 12 Mini" value={deviceName} onChange={(e) => setDeviceName(e.target.value)} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Category</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.icon && <span className="mr-1">{cat.icon}</span>}
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label>Issue description</Label>
@@ -146,25 +192,7 @@ export default function FeedPage() {
               <DialogFooter>
                 <Button
                   disabled={isUploading}
-                  onClick={async () => {
-                    if (!deviceName.trim() || !issueDesc.trim() || !repairSteps.trim()) {
-                      toast.error("Please fill in all fields")
-                      return
-                    }
-                    await addRepairPost({
-                      item_name: deviceName.trim(),
-                      issue_description: issueDesc.trim(),
-                      repair_steps: repairSteps.trim(),
-                      success: outcome === "success",
-                      images: images.length > 0 ? images : null
-                    })
-                    setDeviceName("")
-                    setIssueDesc("")
-                    setRepairSteps("")
-                    setOutcome("success")
-                    setImages([])
-                    setOpen(false)
-                  }}
+                  onClick={handleSubmit}
                 >
                   Post Repair
                 </Button>
@@ -177,10 +205,13 @@ export default function FeedPage() {
       <SearchBar
         allDevices={allDevices}
         allUsers={allUsers}
+        categories={categories}
         value={q}
         onChange={setQ}
         deviceFilter={deviceFilter}
         onDeviceFilter={setDeviceFilter}
+        categoryFilter={categoryFilter}
+        onCategoryFilter={setCategoryFilter}
         userFilter={userFilter}
         onUserFilter={setUserFilter}
         outcomeFilter={outcomeFilter}
