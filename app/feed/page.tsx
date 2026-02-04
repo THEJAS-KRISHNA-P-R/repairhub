@@ -158,7 +158,7 @@ export default function FeedPage() {
                             const filePath = `${currentUser.id}/${fileName}`
 
                             const { error: uploadError } = await supabase.storage
-                              .from('REPAIR_IMAGES')
+                              .from('repair-images')
                               .upload(filePath, file)
 
                             if (uploadError) {
@@ -167,7 +167,7 @@ export default function FeedPage() {
                               continue
                             }
 
-                            const { data } = supabase.storage.from('REPAIR_IMAGES').getPublicUrl(filePath)
+                            const { data } = supabase.storage.from('repair-images').getPublicUrl(filePath)
                             uploadedUrls.push(data.publicUrl)
                           }
                           setImages(prev => [...prev, ...uploadedUrls])
