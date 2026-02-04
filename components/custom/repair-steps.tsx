@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
+import ReactMarkdown from "react-markdown"
 
 export function RepairSteps({ issue, steps, isLoading }: { issue: string; steps: string; isLoading?: boolean }) {
 	return (
@@ -22,7 +22,11 @@ export function RepairSteps({ issue, steps, isLoading }: { issue: string; steps:
 						<div className="h-4 w-4/6 animate-pulse rounded bg-muted" />
 					</div>
 				) : (
-					<p className="whitespace-pre-wrap">{steps || "No repair steps provided."}</p>
+					<div className="prose prose-sm dark:prose-invert max-w-none">
+						<ReactMarkdown>
+							{steps || "No repair steps provided."}
+						</ReactMarkdown>
+					</div>
 				)}
 			</section>
 		</div>

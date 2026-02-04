@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { adminAPI, categoriesAPI, type RepairPost, type User, type Category } from "@/lib/api"
@@ -32,8 +32,9 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Users, FileText, BookOpen, MessageSquare, Trash2, Ban, Plus, Loader2 } from "lucide-react"
+import { Users, FileText, BookOpen, MessageSquare, Trash2, Ban, Plus, Loader2, BarChart2 } from "lucide-react"
 import { toast } from "sonner"
+import { AnalyticsCharts } from "@/components/custom/analytics-charts"
 
 export default function AdminDashboard() {
     const router = useRouter()
@@ -149,6 +150,42 @@ export default function AdminDashboard() {
         }
     }
 
+    // Prepare analytics data
+    const analyticsData = useMemo(() => {
+        // Group by date
+        const dateMap = new Map<string, number>()
+        posts.forEach(post => {
+            const date = new Date(post.date).toISOString().split('T')[0]
+            dateMap.set(date, (dateMap.get(date) || 0) + 1)
+        })
+
+        // Fill last 14 days
+        const last14Days = Array.from({ length: 14 }, (_, i) => {
+            const d = new Date()
+            d.setDate(d.getDate() - i)
+            return d.toISOString().split('T')[0]
+        }).reverse()
+
+        const postsByDate = last14Days.map(date => ({
+            date,
+            count: dateMap.get(date) || 0
+        }))
+
+        // Group by category
+        const categoryMap = new Map<string, number>()
+        posts.forEach(post => {
+            const catName = post.category?.name || 'Uncategorized'
+            categoryMap.set(catName, (categoryMap.get(catName) || 0) + 1)
+        })
+
+        const postsByCategory = Array.from(categoryMap.entries()).map(([name, count]) => ({
+            name,
+            count
+        }))
+
+        return { postsByDate, postsByCategory }
+    }, [posts])
+
     if (loading || !isInitialized) {
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">
@@ -212,9 +249,18 @@ export default function AdminDashboard() {
             <Tabs defaultValue="posts" className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="posts">Posts</TabsTrigger>
+                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
                     <TabsTrigger value="users">Users</TabsTrigger>
                     <TabsTrigger value="categories">Categories</TabsTrigger>
                 </TabsList>
+
+                {/* Analytics Tab */}
+                <TabsContent value="analytics" className="space-y-4">
+                    <AnalyticsCharts
+                        postsByDate={analyticsData.postsByDate}
+                        postsByCategory={analyticsData.postsByCategory}
+                    />
+                </TabsContent>
 
                 {/* Posts Tab */}
                 <TabsContent value="posts" className="space-y-4">

@@ -14,6 +14,7 @@ import { NotificationsDropdown } from "@/components/custom/notifications-dropdow
 
 const baseLinks = [
   { href: "/feed", label: "Feed" },
+  { href: "/trending", label: "Trending" },
   { href: "/guides", label: "Guides" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/profile", label: "Profile" },

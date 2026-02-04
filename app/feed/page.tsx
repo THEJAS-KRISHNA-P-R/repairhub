@@ -14,6 +14,7 @@ import { Outcome } from "@/lib/mock-data"
 import { Loader2, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { categoriesAPI, Category } from "@/lib/api"
+import { ArrowUpDown } from "lucide-react"
 
 export default function FeedPage() {
   const { currentUser, users, repairPosts, addRepairPost } = useApi()
@@ -23,8 +24,10 @@ export default function FeedPage() {
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [userFilter, setUserFilter] = useState("all")
   const [outcomeFilter, setOutcomeFilter] = useState("all")
+  const [sortBy, setSortBy] = useState<"newest" | "upvotes" | "comments">("newest")
   const [open, setOpen] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const [displayCount, setDisplayCount] = useState(12)
 
   // Load categories
   useEffect(() => {
@@ -36,7 +39,7 @@ export default function FeedPage() {
 
   const filtered = useMemo(() => {
     const text = q.trim().toLowerCase()
-    return repairPosts.filter((r) => {
+    let results = repairPosts.filter((r) => {
       if (deviceFilter !== "all" && r.item_name !== deviceFilter) return false
       if (categoryFilter !== "all" && r.category_id !== categoryFilter) return false
       if (outcomeFilter !== "all" && (outcomeFilter === "success") !== r.success) return false
@@ -44,7 +47,22 @@ export default function FeedPage() {
       const hay = `${r.item_name} ${r.issue_description || ''} ${r.repair_steps || ''}`.toLowerCase()
       return hay.includes(text)
     })
-  }, [q, deviceFilter, categoryFilter, userFilter, outcomeFilter, repairPosts])
+
+    // Sort results
+    if (sortBy === "upvotes") {
+      results = results.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+    } else if (sortBy === "comments") {
+      // Default to upvotes for now (comments count not available)
+      results = results.sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
+    } else {
+      results = results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    }
+
+    return results
+  }, [q, deviceFilter, categoryFilter, userFilter, outcomeFilter, sortBy, repairPosts])
+
+  const displayedRepairs = useMemo(() => filtered.slice(0, displayCount), [filtered, displayCount])
+  const hasMore = displayCount < filtered.length
 
   // new post form
   const [deviceName, setDeviceName] = useState("")
@@ -216,6 +234,7 @@ export default function FeedPage() {
         onUserFilter={setUserFilter}
         outcomeFilter={outcomeFilter}
         onOutcomeFilter={setOutcomeFilter}
+        repairs={repairPosts}
       />
 
       {/* Mobile New Repair Button (Floating or visible in layout) */}
@@ -227,6 +246,24 @@ export default function FeedPage() {
         </div>
       )}
 
+      {/* Sort Options */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">
+          {filtered.length} repair{filtered.length !== 1 ? 's' : ''} found
+        </span>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+          <SelectTrigger className="w-40">
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest First</SelectItem>
+            <SelectItem value="upvotes">Most Upvoted</SelectItem>
+            <SelectItem value="comments">Most Active</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="space-y-4">
         {filtered.length === 0 ? (
           <div className="text-center py-12 border rounded-lg bg-muted/10">
@@ -234,11 +271,24 @@ export default function FeedPage() {
             <p className="text-muted-foreground text-sm mt-1">Try adjusting your filters.</p>
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((r) => (
-              <RepairCard key={r.id} id={r.id.toString()} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {displayedRepairs.map((r) => (
+                <RepairCard key={r.id} id={r.id.toString()} />
+              ))}
+            </div>
+            {hasMore && (
+              <div className="flex justify-center pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setDisplayCount(prev => prev + 12)}
+                  className="px-8"
+                >
+                  Load More ({filtered.length - displayCount} remaining)
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>
