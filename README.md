@@ -10,18 +10,32 @@ A community-driven platform for sharing DIY repair guides, documenting repair at
 
 ## ✨ Features
 
-- **🔐 Authentication** – Secure email/password authentication with Supabase Auth and Google OAuth support
+### 🛠️ Core Repair Features
 - **📝 Repair Posts** – Document your repair attempts with item details, issue descriptions, repair steps, and success status
 - **📚 Guides** – Create and browse comprehensive repair guides for various items
-- **💬 Comments** – Engage in discussions with threaded comments on repair posts
-- **🏅 Badges** – Earn recognition with a badge system for active contributors
-- **👤 User Profiles** – Personalized profiles with avatars and bios
 - **🖼️ Image Uploads** – Attach images to repair posts via Supabase Storage
-- **🌙 Dark Mode** – Built-in theme support with next-themes
-- **📱 Responsive Design** – Works seamlessly on desktop and mobile
 - **🏷️ Categories** – Organize repairs by device type (Electronics, Appliances, etc.)
+- **⌨️ Rich Text Editor** – Format repair steps with Markdown support
+
+### 🔍 Discovery & Navigation
+- **🔎 Advanced Search** – Instant search with autocomplete suggestions for repairs and users
+- **📈 Trending Page** – See the most popular repairs from the last 7 days
+- **🔃 Infinite Scroll** – Seamlessly browse through repair feeds
+- **🧹 Sorting & Filtering** – Sort by Newest, Upvotes, or Activity, and filter by category/outcome
+
+### 👥 Community & Social
+- **🔐 Authentication** – Secure email/password authentication with Supabase Auth and Google OAuth support
+- **💬 Comments** – Engage in discussions with threaded comments on repair posts
 - **👍 Upvoting** – Vote for helpful repairs to surface the best content
 - **🔖 Bookmarks** – Save repairs to revisit later
+- **👣 User Following** – Follow other users to see their latest repairs and updates
+- **🔔 Notifications** – Get notified about upvotes, comments, and new followers
+- **👤 User Profiles** – Personalized profiles with avatars, bios, and follower counts
+- **🏅 Badges** – Earn recognition with a badge system for active contributors
+
+### 🛡️ Moderation & Admin
+- **🚩 Reporting** – Flag inappropriate content or users for review
+- **📊 Analytics Dashboard** – View usage stats, growth charts, and category distribution
 - **🛡️ Admin Dashboard** – Moderate content, manage users, and configure categories
 
 ## 🏗️ Tech Stack
@@ -34,6 +48,7 @@ A community-driven platform for sharing DIY repair guides, documenting repair at
 - **UI Components:** [Radix UI](https://www.radix-ui.com/) primitives with shadcn/ui
 - **Forms:** React Hook Form + Zod validation
 - **Data Fetching:** SWR for client-side caching
+- **Charts:** Recharts
 - **Icons:** Lucide React
 
 ### Backend
@@ -56,14 +71,18 @@ repairhub-main/
 │   ├── guides/            # Repair guides
 │   ├── profile/           # User profile
 │   ├── repairs/           # Repair post details
+│   ├── trending/          # Trending repairs page
+│   ├── users/             # Public user profiles
 │   └── layout.tsx         # Root layout
 ├── components/
 │   ├── custom/            # App-specific components
-│   │   ├── navbar.tsx     # Navigation bar
+│   │   ├── analytics-charts.tsx
+│   │   ├── follow-button.tsx
+│   │   ├── navbar.tsx
+│   │   ├── notifications-dropdown.tsx
 │   │   ├── repair-card.tsx
-│   │   ├── vote-button.tsx
-│   │   ├── bookmark-button.tsx
-│   │   └── category-badge.tsx
+│   │   ├── report-dialog.tsx
+│   │   └── search-bar.tsx 
 │   └── ui/                # Radix/shadcn UI primitives
 ├── hooks/                 # Custom React hooks
 ├── lib/
@@ -73,8 +92,7 @@ repairhub-main/
 ├── utils/
 │   └── supabase/          # Supabase client utilities
 ├── supabase/
-│   ├── schema.sql         # Initial database schema
-│   └── migration_v2.sql   # Categories, votes, bookmarks, admin
+│   └── schema.sql         # Complete database schema
 ├── public/                # Static assets
 └── styles/                # Global styles
 ```
@@ -102,10 +120,11 @@ npm install --legacy-peer-deps
 ### 3. Set Up Supabase
 
 1. Create a new project at [supabase.com](https://supabase.com/)
-2. Run `supabase/schema.sql` in the SQL Editor to create initial tables
-3. Run `supabase/migration_v2.sql` for categories, votes, bookmarks, and admin features
-4. Enable Email/Password authentication in Authentication > Providers
-5. (Optional) Configure Google OAuth for social login
+2. Open the SQL Editor in your Supabase dashboard.
+3. Open `supabase/schema.sql` from this repository.
+4. Copy and paste the **entire content** of `schema.sql` into the SQL Editor and run it. this sets up all tables, policies, functions, and triggers.
+5. Enable Email/Password authentication in Authentication > Providers
+6. (Optional) Configure Google OAuth for social login
 
 ### 4. Configure Environment Variables
 
@@ -140,6 +159,12 @@ The app uses the following main tables:
 | `repair_posts` | Repair attempt documentation |
 | `guides` | Comprehensive repair guides |
 | `comments` | Threaded comments on posts |
+| `categories` | Categories for repairs |
+| `votes` | Upvotes on repair posts |
+| `bookmarks` | User bookmarks |
+| `follows` | User follower/following relationships |
+| `notifications` | User notifications |
+| `reports` | Content moderation reports |
 | `badges` | Available achievement badges |
 | `user_badges` | Badges earned by users |
 
@@ -168,6 +193,7 @@ Images are stored in Supabase Storage with:
 - Public `repair-images` bucket
 - Authenticated upload policy
 - Public read access
+- Support for multiple image uploads
 
 ## 🤝 Contributing
 

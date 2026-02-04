@@ -79,7 +79,7 @@ export interface Follow {
 export interface Notification {
   id: string
   user_id: string
-  type: 'upvote' | 'comment' | 'reply' | 'follow'
+  type: 'upvote' | 'comment' | 'reply' | 'follow' | 'report'
   title: string
   message?: string
   link?: string
@@ -893,6 +893,29 @@ export const reportsAPI = {
       reporter_id: user.id
     })
     if (error) throw error
+
+    // Notify all admins
+    try {
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_admin', true)
+
+      if (admins) {
+        await Promise.all(admins.map(admin =>
+          notificationsAPI.create({
+            user_id: admin.id,
+            type: 'report', // You might need to add this type to the Notification interface or use 'system'
+            title: 'New Content Report',
+            message: `A ${data.target_type} has been reported for: ${data.reason}`,
+            link: '/admin',
+            actor_id: user.id
+          })
+        ))
+      }
+    } catch (err) {
+      console.error('Failed to notify admins:', err)
+    }
   },
 
   getAll: async (): Promise<Report[]> => {

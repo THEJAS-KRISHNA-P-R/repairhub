@@ -11,6 +11,7 @@ import { CategoryBadge } from "./category-badge"
 import { Share2 } from "lucide-react"
 import { toast } from "sonner"
 import { type RepairPost } from "@/lib/api"
+import { FollowButton } from "./follow-button"
 
 interface RepairCardProps {
   id?: string
@@ -55,6 +56,7 @@ export function RepairCard({ id, repair: repairProp }: RepairCardProps) {
   return (
     <Card className="h-full transition hover:shadow-md group">
       <Link href={`/repairs/${repair.id}`} className="block">
+
         <CardHeader className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-balance text-base line-clamp-1">{repair.item_name}</CardTitle>
@@ -62,35 +64,51 @@ export function RepairCard({ id, repair: repairProp }: RepairCardProps) {
               <CategoryBadge category={repair.category} size="sm" />
             )}
           </div>
-          <div
-            className="flex items-center gap-2 hover:opacity-80 w-fit cursor-pointer"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              window.location.href = `/users/${repair.user_id}`
-            }}
-          >
-            <img
-              src={user?.avatar_url || "/placeholder-user.jpg"}
-              alt=""
-              className="h-6 w-6 rounded-full"
-            />
-            <span className="text-sm text-muted-foreground hover:underline">{user?.username}</span>
-            <span className="text-xs text-muted-foreground">
-              · {new Date(repair.date).toLocaleDateString()}
-            </span>
+          <div className="flex items-center justify-between">
+            <div
+              className="flex items-center gap-2 hover:opacity-80 w-fit cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                window.location.href = `/users/${repair.user_id}`
+              }}
+            >
+              <img
+                src={user?.avatar_url || "/placeholder-user.jpg"}
+                alt=""
+                className="h-6 w-6 rounded-full"
+              />
+              <span className="text-sm text-muted-foreground hover:underline">{user?.username}</span>
+              <span className="text-xs text-muted-foreground">
+                · {new Date(repair.date).toLocaleDateString()}
+              </span>
+            </div>
+            <div onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
+              <FollowButton userId={repair.user_id} />
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="line-clamp-2 text-sm text-muted-foreground">
-            {repair.issue_description || "No description available"}
-          </p>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Badge variant={repair.success ? "default" : "secondary"}>
-                {repair.success ? "Success" : "Failure"}
-              </Badge>
+        <CardContent>
+          <div className="flex gap-4">
+            <div className="flex-1 space-y-3">
+              <p className="line-clamp-2 text-sm text-muted-foreground">
+                {repair.issue_description || "No description available"}
+              </p>
+              <div className="flex items-center gap-2">
+                <Badge variant={repair.success ? "default" : "secondary"}>
+                  {repair.success ? "Success" : "Failure"}
+                </Badge>
+              </div>
             </div>
+            {repair.images && repair.images.length > 0 && (
+              <div className="shrink-0">
+                <img
+                  src={repair.images[0]}
+                  alt="Repair"
+                  className="h-24 w-24 object-cover rounded-md border bg-muted"
+                />
+              </div>
+            )}
           </div>
         </CardContent>
       </Link>
