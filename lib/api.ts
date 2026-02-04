@@ -788,21 +788,43 @@ export const followsAPI = {
   },
 
   getFollowers: async (userId: string): Promise<User[]> => {
-    const { data, error } = await supabase
+    const { data: follows, error } = await supabase
       .from('follows')
-      .select('follower_id, profiles!follows_follower_id_fkey(*)')
+      .select('follower_id')
       .eq('following_id', userId)
+
     if (error) throw error
-    return (data || []).map((f: any) => f.profiles) as User[]
+    if (!follows || follows.length === 0) return []
+
+    const followerIds = follows.map(f => f.follower_id)
+
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', followerIds)
+
+    if (profilesError) throw profilesError
+    return profiles as User[]
   },
 
   getFollowing: async (userId: string): Promise<User[]> => {
-    const { data, error } = await supabase
+    const { data: follows, error } = await supabase
       .from('follows')
-      .select('following_id, profiles!follows_following_id_fkey(*)')
+      .select('following_id')
       .eq('follower_id', userId)
+
     if (error) throw error
-    return (data || []).map((f: any) => f.profiles) as User[]
+    if (!follows || follows.length === 0) return []
+
+    const followingIds = follows.map(f => f.following_id)
+
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', followingIds)
+
+    if (profilesError) throw profilesError
+    return profiles as User[]
   },
 
   getFollowerCount: async (userId: string): Promise<number> => {
