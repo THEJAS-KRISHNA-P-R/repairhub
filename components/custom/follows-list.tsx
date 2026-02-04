@@ -73,10 +73,10 @@ export function FollowsList({ userId, type, trigger, count }: FollowsListProps) 
                                 >
                                     <Avatar>
                                         <AvatarImage src={user.avatar_url} />
-                                        <AvatarFallback>{user.username[0]?.toUpperCase()}</AvatarFallback>
+                                        <AvatarFallback>{(user.username?.[0] || "U").toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex flex-col">
-                                        <span className="font-medium text-sm">{user.username}</span>
+                                        <span className="font-medium text-sm">{user.username || "Unknown User"}</span>
                                         {user.bio && (
                                             <span className="text-xs text-muted-foreground line-clamp-1">{user.bio}</span>
                                         )}
