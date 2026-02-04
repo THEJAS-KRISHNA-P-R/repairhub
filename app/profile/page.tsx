@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { useApi } from "@/lib/api-context"
 import { BadgeDisplay } from "@/components/custom/badge-display"
 import { useToast } from "@/components/ui/use-toast"
+import { followsAPI } from "@/lib/api"
+import { FollowsList } from "@/components/custom/follows-list"
 
 export default function ProfilePage() {
   const { currentUser, updateProfile } = useApi()
@@ -16,11 +18,27 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("")
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [followerCount, setFollowerCount] = useState(0)
+  const [followingCount, setFollowingCount] = useState(0)
 
   useEffect(() => {
     if (currentUser) {
       setBio(currentUser.bio || "")
       setEmail(currentUser.email || "")
+
+      const loadStats = async () => {
+        try {
+          const [followers, following] = await Promise.all([
+            followsAPI.getFollowerCount(currentUser.id),
+            followsAPI.getFollowingCount(currentUser.id)
+          ])
+          setFollowerCount(followers)
+          setFollowingCount(following)
+        } catch (error) {
+          console.error("Failed to load stats", error)
+        }
+      }
+      loadStats()
     }
   }, [currentUser])
 
@@ -40,10 +58,14 @@ export default function ProfilePage() {
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-4">
       <section className="flex items-center gap-4">
-        <img src={currentUser.avatarUrl || "/placeholder-user.jpg"} alt="" className="h-16 w-16 rounded-full" />
+        <img src={currentUser.avatar_url || "/placeholder-user.jpg"} alt="" className="h-16 w-16 rounded-full" />
         <div>
           <h1 className="text-xl font-semibold">{currentUser.username}</h1>
           <p className="text-sm text-muted-foreground">{email}</p>
+          <div className="flex gap-4 mt-2 text-sm">
+            <FollowsList userId={currentUser.id} type="followers" count={followerCount} />
+            <FollowsList userId={currentUser.id} type="following" count={followingCount} />
+          </div>
         </div>
       </section>
 
@@ -69,8 +91,8 @@ export default function ProfilePage() {
             <Label>Bio</Label>
             <Textarea rows={4} value={bio} onChange={(e) => setBio(e.target.value)} />
           </div>
-          <Button 
-            disabled={isLoading} 
+          <Button
+            disabled={isLoading}
             onClick={async () => {
               try {
                 setIsLoading(true)

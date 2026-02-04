@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { RepairCard } from "@/components/custom/repair-card"
 import { FollowButton } from "@/components/custom/follow-button"
 import { ReportDialog } from "@/components/custom/report-dialog"
+import { FollowsList } from "@/components/custom/follows-list"
 import { Loader2, Wrench, ThumbsUp, Calendar, Users } from "lucide-react"
 
 export default function UserProfilePage() {
@@ -97,14 +98,8 @@ export default function UserProfilePage() {
 
                             {/* Follower Stats */}
                             <div className="flex justify-center md:justify-start gap-4 text-sm">
-                                <div className="flex items-center gap-1">
-                                    <span className="font-semibold">{followerCount}</span>
-                                    <span className="text-muted-foreground">followers</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <span className="font-semibold">{followingCount}</span>
-                                    <span className="text-muted-foreground">following</span>
-                                </div>
+                                <FollowsList userId={params.id} type="followers" count={followerCount} />
+                                <FollowsList userId={params.id} type="following" count={followingCount} />
                             </div>
 
                             {/* Stats */}
