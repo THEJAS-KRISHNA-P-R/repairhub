@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from 
 import { Menu, Shield, Bookmark } from "lucide-react"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { adminAPI } from "@/lib/api"
+import { NotificationsDropdown } from "@/components/custom/notifications-dropdown"
 
 const baseLinks = [
   { href: "/feed", label: "Feed" },
@@ -97,13 +98,16 @@ export function Navbar() {
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-2">
-          {/* Bookmarks link for logged in users */}
+          {/* Notifications and Bookmarks for logged in users */}
           {currentUser && (
-            <Link href="/dashboard/bookmarks" className="hidden md:block">
-              <Button variant="ghost" size="icon" title="My Bookmarks">
-                <Bookmark className="h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="hidden md:flex items-center gap-1">
+              <NotificationsDropdown />
+              <Link href="/dashboard/bookmarks">
+                <Button variant="ghost" size="icon" title="My Bookmarks">
+                  <Bookmark className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           )}
 
           {/* Desktop Auth */}

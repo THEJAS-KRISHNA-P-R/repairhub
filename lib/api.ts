@@ -69,6 +69,41 @@ export interface Guide {
   profiles?: User
 }
 
+export interface Follow {
+  id: string
+  follower_id: string
+  following_id: string
+  created_at: string
+}
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: 'upvote' | 'comment' | 'reply' | 'follow'
+  title: string
+  message?: string
+  link?: string
+  actor_id?: string
+  actor?: User
+  repair_post_id?: string
+  is_read: boolean
+  created_at: string
+}
+
+export interface Report {
+  id: string
+  reporter_id: string
+  target_type: 'post' | 'comment' | 'user'
+  target_id: string
+  reason: string
+  description?: string
+  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed'
+  reviewed_by?: string
+  reviewed_at?: string
+  created_at: string
+  reporter?: User
+}
+
 export interface LoginRequest {
   email: string
   password: string
@@ -702,6 +737,190 @@ export const adminAPI = {
       .eq('id', userId)
     if (error) throw error
   },
+}
+
+// Follows API
+export const followsAPI = {
+  follow: async (userId: string): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { error } = await supabase.from('follows').insert({
+      follower_id: user.id,
+      following_id: userId
+    })
+    if (error) throw error
+
+    // Create notification
+    await notificationsAPI.create({
+      user_id: userId,
+      type: 'follow',
+      title: 'New follower',
+      message: 'Someone followed you',
+      link: `/users/${user.id}`,
+      actor_id: user.id
+    })
+  },
+
+  unfollow: async (userId: string): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { error } = await supabase
+      .from('follows')
+      .delete()
+      .eq('follower_id', user.id)
+      .eq('following_id', userId)
+    if (error) throw error
+  },
+
+  isFollowing: async (userId: string): Promise<boolean> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+
+    const { data } = await supabase
+      .from('follows')
+      .select('id')
+      .eq('follower_id', user.id)
+      .eq('following_id', userId)
+      .maybeSingle()
+    return !!data
+  },
+
+  getFollowers: async (userId: string): Promise<User[]> => {
+    const { data, error } = await supabase
+      .from('follows')
+      .select('follower_id, profiles!follows_follower_id_fkey(*)')
+      .eq('following_id', userId)
+    if (error) throw error
+    return (data || []).map((f: any) => f.profiles) as User[]
+  },
+
+  getFollowing: async (userId: string): Promise<User[]> => {
+    const { data, error } = await supabase
+      .from('follows')
+      .select('following_id, profiles!follows_following_id_fkey(*)')
+      .eq('follower_id', userId)
+    if (error) throw error
+    return (data || []).map((f: any) => f.profiles) as User[]
+  },
+
+  getFollowerCount: async (userId: string): Promise<number> => {
+    const { count, error } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('following_id', userId)
+    if (error) throw error
+    return count || 0
+  },
+
+  getFollowingCount: async (userId: string): Promise<number> => {
+    const { count, error } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('follower_id', userId)
+    if (error) throw error
+    return count || 0
+  }
+}
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: async (): Promise<Notification[]> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select(`
+        *,
+        actor:profiles!notifications_actor_id_fkey(*)
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (error) throw error
+    return data as unknown as Notification[]
+  },
+
+  getUnreadCount: async (): Promise<number> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return 0
+
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false)
+    if (error) return 0
+    return count || 0
+  },
+
+  create: async (data: Omit<Notification, 'id' | 'is_read' | 'created_at'>): Promise<void> => {
+    const { error } = await supabase.from('notifications').insert(data)
+    if (error) console.error('Failed to create notification:', error)
+  },
+
+  markAsRead: async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', id)
+    if (error) throw error
+  },
+
+  markAllAsRead: async (): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false)
+    if (error) throw error
+  }
+}
+
+// Reports API
+export const reportsAPI = {
+  create: async (data: { target_type: 'post' | 'comment' | 'user'; target_id: string; reason: string; description?: string }): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { error } = await supabase.from('reports').insert({
+      ...data,
+      reporter_id: user.id
+    })
+    if (error) throw error
+  },
+
+  getAll: async (): Promise<Report[]> => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select(`
+        *,
+        reporter:profiles!reports_reporter_id_fkey(*)
+      `)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data as unknown as Report[]
+  },
+
+  updateStatus: async (id: string, status: Report['status']): Promise<void> => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { error } = await supabase
+      .from('reports')
+      .update({
+        status,
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString()
+      })
+      .eq('id', id)
+    if (error) throw error
+  }
 }
 
 export default supabase
